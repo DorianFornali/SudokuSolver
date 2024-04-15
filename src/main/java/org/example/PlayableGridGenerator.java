@@ -3,7 +3,7 @@ package org.example;
 /** This class is responsible for removing numbers of the grid to make them playable */
 public class PlayableGridGenerator{
 
-    private final Sudoku solver;
+    private Sudoku solver;
 
     public PlayableGridGenerator(Sudoku solver) {
         this.solver = solver;
@@ -29,8 +29,27 @@ public class PlayableGridGenerator{
         // The goal here is to remove randomly numbers from the grid until we reach a point where the next number to remove
         // would give a second solution to the grid solve. We then stop and return the grid.
 
-        // First we need a way to check how many solutions the grid has
         solver.targetGrid = grid;
+        solver.setModelLevel(ModelLevel.MEDIUM);
+        solver.buildModel();
+        // The medium solver will be used for this operation
+        while(solver.getModel().getSolver().getSolutionCount() <= 1) {
+
+            // We remove a number from the grid
+            System.out.println("Removing a number");
+            int targetX = (int) (Math.random() * SIZE);
+            int targetY = (int) (Math.random() * SIZE);
+            grid[targetX][targetY] = 0;
+
+            solver.targetGrid = grid;
+            solver.execute();
+
+            System.out.println("Resulting grid:");
+            Sudoku.print2Dgrid(grid);
+            // We extract how many solutions the solver found
+            System.out.println("SOLUTIONS FOUND:" + solver.getModel().getSolver().getSolutionCount());
+        }
+
         return grid;
     }
 }
