@@ -30,25 +30,36 @@ public class PlayableGridGenerator{
         // would give a second solution to the grid solve. We then stop and return the grid.
 
         solver.targetGrid = grid;
-        solver.setModelLevel(ModelLevel.MEDIUM);
-        solver.buildModel();
         // The medium solver will be used for this operation
-        while(solver.getModel().getSolver().getSolutionCount() <= 1) {
+        solver.setModelLevel(ModelLevel.MEDIUM);
+
+        while(true) {
 
             // We remove a number from the grid
-            System.out.println("Removing a number");
             int targetX = (int) (Math.random() * SIZE);
             int targetY = (int) (Math.random() * SIZE);
+            int oldValue = grid[targetX][targetY];
             grid[targetX][targetY] = 0;
 
+            System.out.println("Removed number at " + targetY + " " + targetX);
+
             solver.targetGrid = grid;
-            solver.execute();
+            solver.buildModel();
+            //solver.execute();
 
             System.out.println("Resulting grid:");
             Sudoku.print2Dgrid(grid);
             // We extract how many solutions the solver found
-            System.out.println("SOLUTIONS FOUND:" + solver.getModel().getSolver().getSolutionCount());
+            int solutions = solver.getModel().getSolver().findAllSolutions().size();
+            System.out.println("SOLUTIONS FOUND:" + solutions);
+            if(solutions > 1) {
+                // If the solver found more than one solution, we re-put the number in the grid and return the grid
+                System.out.println("Found more than one solution, reverting.");
+                grid[targetX][targetY] = oldValue;
+                break;
+            }
         }
+
 
         return grid;
     }

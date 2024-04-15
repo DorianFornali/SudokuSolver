@@ -33,7 +33,7 @@ public class Sudoku extends AbstractProblem {
     IntVar[][] rows, cols, carres;
 
     /** The current grid to solve */
-    int[][] targetGrid;
+    public int[][] targetGrid;
     ModelLevel modelLevel = ModelLevel.MEDIUM;
 
 
@@ -175,12 +175,12 @@ public class Sudoku extends AbstractProblem {
     public void solve() {
         //model.getSolver().showStatistics();
         model.getSolver().solve();
-        /*try {
+        try {
             model.getSolver().propagate();
         } catch (ContradictionException e) {
             e.printStackTrace();
-        }*/
-        model.getSolver().printStatistics();
+        }
+        //model.getSolver().printStatistics();
     }
 
     public void printGrid(int[][] grid) {
@@ -224,8 +224,9 @@ public class Sudoku extends AbstractProblem {
         int[][] gridToSolve = playableGridGenerator.processGrid(grid);
 
         // The grid is now ready to be solved
-        /*sudoku.targetGrid = gridToSolve;
-        sudoku.execute(args);*/
+        // We verify that the grid has only one solution
+        sudoku.targetGrid = gridToSolve;
+        sudoku.execute(args);
     }
 
 }
