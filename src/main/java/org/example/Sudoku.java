@@ -29,15 +29,13 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  * @since 19/04/11
  */
 public class Sudoku extends AbstractProblem {
-
-    @Option(name = "-g", aliases = "--grid", usage = "Sudoku grid ID.", required = false)
-    Data data = Data.level1;
-
-    private final int n = 9;
+    private static final int n = 9;
     IntVar[][] rows, cols, carres;
 
+    /** The current grid to solve */
+    int[][] targetGrid;
 
-    @Override
+
     public void buildModel() {
         model = new Model();
 
@@ -46,8 +44,8 @@ public class Sudoku extends AbstractProblem {
         carres = new IntVar[n][n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (data.grid(i, j) > 0) {
-                    rows[i][j] = model.intVar(data.grid(i, j));
+                if (targetGrid[i][j] > 0) {
+                    rows[i][j] = model.intVar(targetGrid[i][j]);
                 } else {
                     rows[i][j] = model.intVar("c_" + i + "_" + j, 1, n, false);
                 }
@@ -82,15 +80,21 @@ public class Sudoku extends AbstractProblem {
 
     @Override
     public void solve() {
-//        model.getSolver().showStatistics();
-//        model.getSolver().solve();
-        try {
+        model.getSolver().showStatistics();
+        model.getSolver().solve();
+        /*try {
             model.getSolver().propagate();
         } catch (ContradictionException e) {
             e.printStackTrace();
-        }
+        }*/
 
-        StringBuilder st = new StringBuilder(String.format("Sudoku -- %s\n", data.name()));
+        printGrid(targetGrid);
+
+        model.getSolver().printStatistics();
+    }
+
+    public void printGrid(int[][] grid) {
+        StringBuilder st = new StringBuilder("Sudoku -- %s\n");
         st.append("\t");
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -100,101 +104,19 @@ public class Sudoku extends AbstractProblem {
         }
 
         System.out.println(st);
-        model.getSolver().printStatistics();
     }
 
     public static void main(String[] args) {
-        new Sudoku().execute(args);
+        Sudoku sudoku = new Sudoku();
+        SudokuGridGenerator fullGridGenerator = new SudokuGridGenerator();
+        int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
+
+        PlayableGridGenerator playableGridGenerator = new PlayableGridGenerator(sudoku);
+        int[][] gridToSolve = playableGridGenerator.processGrid(grid);
+
+        // The grid is now ready to be solved
+        sudoku.targetGrid = gridToSolve;
+        sudoku.execute(args);
     }
 
-    /////////////////////////////////// DATA //////////////////////////////////////////////////
-    enum Data {
-        level1(
-                new int[][]{
-                        {0, 0, 0, 2, 0, 0, 0, 0, 0},
-                        {0, 8, 0, 0, 3, 0, 0, 7, 0},
-                        {3, 0, 0, 5, 0, 4, 0, 0, 0},
-                        {0, 0, 0, 0, 0, 0, 0, 2, 8},
-                        {8, 3, 0, 0, 1, 0, 0, 0, 0},
-                        {0, 4, 0, 7, 2, 0, 3, 5, 1},
-                        {0, 7, 0, 0, 5, 6, 0, 0, 4},
-                        {0, 0, 3, 0, 0, 0, 0, 0, 0},
-                        {2, 0, 5, 4, 0, 1, 6, 0, 3}
-                }
-        ),
-        level2(
-                new int[][]{
-                        {3, 0, 4, 0, 2, 0, 0, 7, 0},
-                        {1, 5, 0, 0, 0, 0, 0, 4, 0},
-                        {0, 0, 0, 0, 0, 1, 0, 8, 3},
-                        {0, 0, 0, 0, 0, 6, 1, 0, 0},
-                        {2, 0, 5, 0, 3, 0, 0, 0, 8},
-                        {7, 0, 0, 1, 0, 0, 3, 0, 0},
-                        {0, 0, 0, 0, 0, 0, 6, 0, 0},
-                        {5, 6, 0, 0, 0, 7, 0, 0, 0},
-                        {0, 0, 0, 8, 0, 0, 0, 1, 4}
-                }
-        ),
-        level3(
-                new int[][]{
-                        {0, 1, 0, 0, 0, 0, 0, 0, 0},
-                        {8, 0, 0, 0, 0, 2, 1, 7, 0},
-                        {0, 0, 4, 0, 0, 0, 0, 0, 0},
-                        {0, 2, 0, 0, 0, 6, 0, 1, 3},
-                        {0, 5, 3, 0, 7, 0, 6, 0, 2},
-                        {1, 0, 0, 8, 0, 0, 5, 4, 0},
-                        {0, 0, 0, 3, 1, 5, 0, 2, 6},
-                        {0, 4, 0, 2, 0, 0, 0, 0, 7},
-                        {0, 0, 0, 4, 8, 0, 3, 0, 0}
-                }
-        ),
-        level4(
-                new int[][]{
-                        {0, 4, 0, 8, 0, 0, 0, 0, 0},
-                        {0, 1, 0, 7, 2, 0, 5, 0, 4},
-                        {8, 0, 0, 4, 0, 0, 0, 0, 0},
-                        {1, 0, 5, 3, 0, 0, 4, 2, 0},
-                        {0, 3, 0, 0, 0, 0, 0, 0, 0},
-                        {4, 0, 0, 0, 5, 0, 7, 0, 1},
-                        {6, 0, 0, 0, 0, 0, 1, 7, 0},
-                        {0, 0, 0, 2, 1, 0, 8, 6, 0},
-                        {2, 0, 0, 0, 3, 7, 0, 0, 0}
-                }
-        ),
-        level5(
-                new int[][]{
-                        {0, 0, 0, 2, 0, 0, 0, 1, 5},
-                        {3, 0, 0, 0, 0, 0, 7, 8, 0},
-                        {0, 0, 0, 7, 0, 0, 0, 0, 0},
-                        {1, 0, 0, 0, 0, 0, 0, 5, 7},
-                        {7, 2, 0, 0, 4, 0, 0, 0, 0},
-                        {8, 6, 0, 1, 0, 3, 0, 4, 0},
-                        {4, 0, 0, 0, 1, 0, 0, 0, 0},
-                        {2, 1, 0, 0, 0, 7, 8, 3, 0},
-                        {0, 5, 0, 3, 0, 0, 0, 0, 0}
-                }
-        ),
-        level6(
-                new int[][]{
-                        {0, 0, 0, 1, 0, 5, 4, 0, 0},
-                        {0, 6, 0, 2, 0, 8, 0, 0, 7},
-                        {0, 5, 2, 0, 0, 0, 1, 0, 0},
-                        {0, 1, 5, 6, 0, 2, 0, 0, 0},
-                        {2, 0, 0, 0, 0, 7, 5, 1, 0},
-                        {0, 7, 8, 4, 0, 0, 0, 3, 2},
-                        {0, 0, 3, 0, 1, 4, 7, 0, 6},
-                        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-                        {6, 0, 0, 5, 0, 0, 0, 8, 0}
-                }
-        ),;
-        final int[][] grid;
-
-        Data(int[][] grid) {
-            this.grid = grid;
-        }
-
-        int grid(int i, int j) {
-            return grid[i][j];
-        }
-    }
 }
