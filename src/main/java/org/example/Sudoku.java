@@ -98,13 +98,12 @@ public class Sudoku extends AbstractProblem {
         // We will check the equality for each pair of values in the row, column and sub-box
         // And post() the constraint, thus we have one constraint per pair
         for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
+            for (int j = 0; j < n; j++) {
                 model.arithm(rows[i][j], "!=", rows[j][i]).post();
                 model.arithm(cols[i][j], "!=", cols[j][i]).post();
                 model.arithm(carres[i][j], "!=", carres[j][i]).post();
             }
         }
-
     }
 
     private void buildMediumModel(){
@@ -139,6 +138,8 @@ public class Sudoku extends AbstractProblem {
             model.allDifferent(cols[i], "AC").post();
             model.allDifferent(carres[i], "AC").post();
         }
+
+
 
     }
 
@@ -258,9 +259,10 @@ public class Sudoku extends AbstractProblem {
         }
 
         System.out.println("DONE SOLVING " + N + " GRIDS");
-        System.out.println("Average time taken: " + sudoku.timeTaken.stream().reduce(0f, Float::sum) / sudoku.timeTaken.size());
-        System.out.println("Max time taken: " + sudoku.timeTaken.stream().max(Float::compareTo).get());
-
+        if(!sudoku.timeTaken.isEmpty()) {
+            System.out.println("Average time taken: " + sudoku.timeTaken.stream().reduce(0f, Float::sum) / sudoku.timeTaken.size());
+            System.out.println("Max time taken: " + sudoku.timeTaken.stream().max(Float::compareTo).get());
+        }
     }
 
 }
