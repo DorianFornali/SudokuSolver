@@ -34,32 +34,28 @@ public class Sudoku extends AbstractProblem {
 
     /** The current grid to solve */
     public int[][] targetGrid;
-    ModelLevel modelLevel = ModelLevel.MEDIUM;
-
+    ModelLevel modelLevel = ModelLevel.EASY;
 
 
 
     public void buildModel() {
-        Model easyModel = buildEasyModel();
-        Model mediumModel = buildMediumModel();
-        Model hardModel = buildHardModel();
-
 
         switch (modelLevel) {
             case EASY:
-                this.model = easyModel;
+                buildEasyModel();
                 break;
             case MEDIUM:
-                this.model = mediumModel;
+                buildMediumModel();
                 break;
             case HARD:
-                this.model = hardModel;
+                buildHardModel();
                 break;
         }
 
     }
 
-    private Model buildEasyModel(){
+    /** The easy model consists of alldiff checking with very basic methods */
+    private void buildEasyModel(){
         model = new Model();
 
         rows = new IntVar[n][n];
@@ -86,15 +82,22 @@ public class Sudoku extends AbstractProblem {
             }
         }
 
+        // We will check that each row, column and carre has different values
+        // With a very basic 2-for-loops approach
+        // We will check the equality for each pair of values in the row, column and sub-box
+        // And post() the constraint, thus we have one constraint per pair
         for (int i = 0; i < n; i++) {
-            model.allDifferent(rows[i], "AC").post();
-            model.allDifferent(cols[i], "AC").post();
-            model.allDifferent(carres[i], "AC").post();
+            for (int j = i + 1; j < n; j++) {
+                model.arithm(rows[i][j], "!=", rows[j][i]).post();
+                model.arithm(cols[i][j], "!=", cols[j][i]).post();
+                model.arithm(carres[i][j], "!=", carres[j][i]).post();
+            }
         }
-        return model;
+
+
     }
 
-    private Model buildMediumModel(){
+    private void buildMediumModel(){
         model = new Model();
 
         rows = new IntVar[n][n];
@@ -126,10 +129,10 @@ public class Sudoku extends AbstractProblem {
             model.allDifferent(cols[i], "AC").post();
             model.allDifferent(carres[i], "AC").post();
         }
-        return model;
+
     }
 
-    private Model buildHardModel(){
+    private void buildHardModel(){
         model = new Model();
 
         rows = new IntVar[n][n];
@@ -161,7 +164,6 @@ public class Sudoku extends AbstractProblem {
             model.allDifferent(cols[i], "AC").post();
             model.allDifferent(carres[i], "AC").post();
         }
-        return model;
     }
 
 
@@ -173,14 +175,25 @@ public class Sudoku extends AbstractProblem {
 
     @Override
     public void solve() {
-        //model.getSolver().showStatistics();
+//        model.getSolver().showStatistics();
         model.getSolver().solve();
-        try {
+        /*try {
             model.getSolver().propagate();
         } catch (ContradictionException e) {
             e.printStackTrace();
+        }*/
+
+        StringBuilder st = new StringBuilder("Sudoku -- ");
+        st.append("\t");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                st.append(rows[i][j]).append("\t\t\t");
+            }
+            st.append("\n\t");
         }
-        //model.getSolver().printStatistics();
+
+        System.out.println(st);
+        model.getSolver().printStatistics();
     }
 
     public void printGrid(int[][] grid) {
@@ -200,7 +213,7 @@ public class Sudoku extends AbstractProblem {
         this.modelLevel = level;
     }
 
-    /** Prints the grid without the model bias */
+    /** Prints the grid via pure jure vision */
     public static void print2Dgrid(int[][] grid) {
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[i].length; j++) {
@@ -225,7 +238,22 @@ public class Sudoku extends AbstractProblem {
 
         // The grid is now ready to be solved
         // We verify that the grid has only one solution
+        int[][] testGrid = {
+                {0, 0, 0, 7, 0, 0, 5, 0, 1},
+                {0, 0, 0, 2, 3, 9, 0, 0, 0},
+                {0, 0, 0, 5, 0, 0, 8, 0, 0},
+                {0, 7, 0, 0, 0, 3, 0, 0, 0},
+                {5, 0, 0, 0, 6, 0, 0, 0, 0},
+                {0, 1, 0, 0, 0, 0, 4, 6, 0},
+                {0, 0, 3, 0, 7, 0, 0, 0, 2},
+                {9, 0, 2, 0, 0, 0, 0, 5, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 9}
+        };
+
         sudoku.targetGrid = gridToSolve;
+        //sudoku.targetGrid = testGrid;
+        sudoku.setModelLevel(ModelLevel.MEDIUM);
+        sudoku.buildModel();
         sudoku.execute(args);
     }
 
