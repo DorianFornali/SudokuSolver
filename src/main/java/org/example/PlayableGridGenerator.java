@@ -41,20 +41,20 @@ public class PlayableGridGenerator{
             int oldValue = grid[targetX][targetY];
             grid[targetX][targetY] = 0;
 
-            System.out.println("Removed number at " + targetY + " " + targetX);
+            // System.out.println("Removed number at " + targetY + " " + targetX);
 
             solver.targetGrid = grid;
             solver.buildModel();
-            //solver.execute();
 
-            System.out.println("Resulting grid:");
-            Sudoku.print2Dgrid(grid);
+            // System.out.println("Resulting grid:");
+            // Sudoku.print2Dgrid(grid);
             // We extract how many solutions the solver found
             int solutions = solver.getModel().getSolver().findAllSolutions().size();
-            System.out.println("SOLUTIONS FOUND:" + solutions);
+
+            // System.out.println("SOLUTIONS FOUND:" + solutions);
             if(solutions > 1) {
                 // If the solver found more than one solution, we re-put the number in the grid and return the grid
-                System.out.println("Found more than one solution, reverting.");
+                // System.out.println("Found more than one solution, reverting.");
                 grid[targetX][targetY] = oldValue;
                 break;
             }

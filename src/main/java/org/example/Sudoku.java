@@ -14,6 +14,10 @@ import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.kohsuke.args4j.Option;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import static org.chocosolver.solver.search.strategy.Search.minDomLBSearch;
 import static org.chocosolver.util.tools.ArrayUtils.append;
 
@@ -30,12 +34,17 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  */
 public class Sudoku extends AbstractProblem {
     private static final int n = 9;
+    private static final int N = 2;
     IntVar[][] rows, cols, carres;
 
     /** The current grid to solve */
     public int[][] targetGrid;
     ModelLevel modelLevel = ModelLevel.EASY;
 
+    // ----------------------- Solving data ------------------------------
+
+    private List<Float> timeTaken = new ArrayList<>();
+    private float maxTime = 0;
 
 
     public void buildModel() {
@@ -61,6 +70,8 @@ public class Sudoku extends AbstractProblem {
         rows = new IntVar[n][n];
         cols = new IntVar[n][n];
         carres = new IntVar[n][n];
+
+
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (targetGrid[i][j] > 0) {
@@ -93,7 +104,6 @@ public class Sudoku extends AbstractProblem {
                 model.arithm(carres[i][j], "!=", carres[j][i]).post();
             }
         }
-
 
     }
 
@@ -175,25 +185,20 @@ public class Sudoku extends AbstractProblem {
 
     @Override
     public void solve() {
-//        model.getSolver().showStatistics();
+        //model.getSolver().showStatistics();
         model.getSolver().solve();
-        /*try {
+        //printGrid(targetGrid);
+        try {
             model.getSolver().propagate();
         } catch (ContradictionException e) {
             e.printStackTrace();
-        }*/
-
-        StringBuilder st = new StringBuilder("Sudoku -- ");
-        st.append("\t");
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                st.append(rows[i][j]).append("\t\t\t");
-            }
-            st.append("\n\t");
         }
 
-        System.out.println(st);
-        model.getSolver().printStatistics();
+        // printGrid(targetGrid);
+
+        //model.getSolver().printStatistics();
+
+
     }
 
     public void printGrid(int[][] grid) {
@@ -226,35 +231,36 @@ public class Sudoku extends AbstractProblem {
     public static void main(String[] args) {
         Sudoku sudoku = new Sudoku();
         SudokuGridGenerator fullGridGenerator = new SudokuGridGenerator();
-        int[] oneDimensionGrid = fullGridGenerator.generateGrid();
-        System.out.println("Initial Grid:");
-        SudokuGridGenerator.printGrid(oneDimensionGrid);
-
-        int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
-
-
         PlayableGridGenerator playableGridGenerator = new PlayableGridGenerator(sudoku);
-        int[][] gridToSolve = playableGridGenerator.processGrid(grid);
+        /*int[] oneDimensionGrid = fullGridGenerator.generateGrid();
+        System.out.println("Initial Grid:");
+        SudokuGridGenerator.printGrid(oneDimensionGrid);*/
 
-        // The grid is now ready to be solved
-        // We verify that the grid has only one solution
-        int[][] testGrid = {
-                {0, 0, 0, 7, 0, 0, 5, 0, 1},
-                {0, 0, 0, 2, 3, 9, 0, 0, 0},
-                {0, 0, 0, 5, 0, 0, 8, 0, 0},
-                {0, 7, 0, 0, 0, 3, 0, 0, 0},
-                {5, 0, 0, 0, 6, 0, 0, 0, 0},
-                {0, 1, 0, 0, 0, 0, 4, 6, 0},
-                {0, 0, 3, 0, 7, 0, 0, 0, 2},
-                {9, 0, 2, 0, 0, 0, 0, 5, 0},
-                {0, 0, 0, 0, 0, 0, 0, 0, 9}
-        };
+        for(int i = 0; i < N; i++){
+            // We generate N full grids
+            int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
+            int[][] gridToSolve = playableGridGenerator.processGrid(grid);
 
-        sudoku.targetGrid = gridToSolve;
-        //sudoku.targetGrid = testGrid;
-        sudoku.setModelLevel(ModelLevel.MEDIUM);
-        sudoku.buildModel();
-        sudoku.execute(args);
+            sudoku.targetGrid = gridToSolve;
+            sudoku.setModelLevel(ModelLevel.MEDIUM);
+            sudoku.buildModel();
+            sudoku.execute(args);
+
+            float time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
+            long failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
+            if(failCount <= 0) {
+                System.out.println("Solved a grid with time taken: " + time);
+                sudoku.timeTaken.add(time);
+            }
+            else{
+                System.err.println("Failed to solve a grid with time taken: " + time);
+            }
+        }
+
+        System.out.println("DONE SOLVING " + N + " GRIDS");
+        System.out.println("Average time taken: " + sudoku.timeTaken.stream().reduce(0f, Float::sum) / sudoku.timeTaken.size());
+        System.out.println("Max time taken: " + sudoku.timeTaken.stream().max(Float::compareTo).get());
+
     }
 
 }
