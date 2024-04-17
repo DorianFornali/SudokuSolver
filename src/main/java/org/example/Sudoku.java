@@ -14,9 +14,7 @@ import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.kohsuke.args4j.Option;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.chocosolver.solver.search.strategy.Search.minDomLBSearch;
 import static org.chocosolver.util.tools.ArrayUtils.append;
@@ -34,7 +32,9 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  */
 public class Sudoku extends AbstractProblem {
     private static final int n = 9;
-    private static final int N = 2;
+    private static final int N = 10000;
+
+    public static Map<GridDifficulty, ArrayList<int[][]>> gridsAssessedBucket;
     IntVar[][] rows, cols, carres;
 
     /** The current grid to solve */
@@ -46,6 +46,14 @@ public class Sudoku extends AbstractProblem {
     private List<Float> timeTaken = new ArrayList<>();
     private float maxTime = 0;
 
+    public Sudoku(){
+        super();
+        gridsAssessedBucket = new HashMap<>();
+        gridsAssessedBucket.put(GridDifficulty.EASY, new ArrayList<>());
+        gridsAssessedBucket.put(GridDifficulty.MEDIUM, new ArrayList<>());
+        gridsAssessedBucket.put(GridDifficulty.HARD, new ArrayList<>());
+        gridsAssessedBucket.put(GridDifficulty.DIABOLIC, new ArrayList<>());
+    }
 
     public void buildModel() {
 
@@ -241,21 +249,58 @@ public class Sudoku extends AbstractProblem {
             // We generate N full grids
             int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
-
             sudoku.targetGrid = gridToSolve;
-            sudoku.setModelLevel(ModelLevel.MEDIUM);
+
+            // We first try to solve with the easy model
+            sudoku.setModelLevel(ModelLevel.EASY);
             sudoku.buildModel();
             sudoku.execute(args);
 
             float time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
             long failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
-            if(failCount <= 0) {
-                System.out.println("Solved a grid with time taken: " + time);
-                sudoku.timeTaken.add(time);
+            long backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
+
+            if(failCount > 0 || backtracks > 0) {
+                System.out.println("The grid is too hard to" +
+                        " solve with the easy model, trying with the medium model");
+                // Now trying with medium model
+                sudoku.setModelLevel(ModelLevel.MEDIUM);
+                sudoku.buildModel();
+                sudoku.execute(args);
+
+                time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
+                failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
+                backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
+
+                if(failCount > 0 || backtracks > 0){
+                    System.out.println("The grid is too hard to" +
+                            " solve with the medium model, trying with the hard model");
+                    // Now trying with hard model
+                    sudoku.setModelLevel(ModelLevel.HARD);
+                    sudoku.buildModel();
+                    sudoku.execute(args);
+
+                    time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
+                    failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
+                    backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
+                    if(failCount > 0 || backtracks > 0){
+                        System.out.println("The grid is too hard for all models, setting it as diabolic");
+                        gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
+                    }
+                    else{
+                        System.out.println("Solved a grid with the hard model");
+                        gridsAssessedBucket.get(GridDifficulty.HARD).add(gridToSolve);
+                    }
+                } else {
+                    System.out.println("Solved a grid with the medium model");
+                    gridsAssessedBucket.get(GridDifficulty.MEDIUM).add(gridToSolve);
+                }
+
+            } else {
+                System.out.println("Solved a grid with the easy model");
+                gridsAssessedBucket.get(GridDifficulty.EASY).add(gridToSolve);
             }
-            else{
-                System.err.println("Failed to solve a grid with time taken: " + time);
-            }
+            sudoku.timeTaken.add(time);
         }
 
         System.out.println("DONE SOLVING " + N + " GRIDS");
@@ -263,6 +308,12 @@ public class Sudoku extends AbstractProblem {
             System.out.println("Average time taken: " + sudoku.timeTaken.stream().reduce(0f, Float::sum) / sudoku.timeTaken.size());
             System.out.println("Max time taken: " + sudoku.timeTaken.stream().max(Float::compareTo).get());
         }
+
+        // We conclude by saying how much grids os each difficulty we have
+        System.out.println("EASY GRIDS: " + gridsAssessedBucket.get(GridDifficulty.EASY).size());
+        System.out.println("MEDIUM GRIDS: " + gridsAssessedBucket.get(GridDifficulty.MEDIUM).size());
+        System.out.println("HARD GRIDS: " + gridsAssessedBucket.get(GridDifficulty.HARD).size());
+        System.out.println("DIABOLIC GRIDS: " + gridsAssessedBucket.get(GridDifficulty.DIABOLIC).size());
     }
 
 }
