@@ -32,7 +32,7 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  */
 public class Sudoku extends AbstractProblem {
     private static final int n = 9;
-    private static final int N = 1000;
+    private static final int N = 10000;
 
     // Bucket containing the grids that have been assessed and their difficulty
     public static Map<GridDifficulty, ArrayList<int[][]>> gridsAssessedBucket;
@@ -355,7 +355,8 @@ public class Sudoku extends AbstractProblem {
                     time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
                     failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
                     backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
-                    if(failCount > 0 || backtracks > 0){
+                    // before setting it as diabolic we check if it took more than 5 seconds to solve
+                    if((failCount > 0 || backtracks > 0) && time > 0.05f){
                         //System.out.println("The grid is too hard for all models, setting it as diabolic");
                         gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
                     }
@@ -386,6 +387,44 @@ public class Sudoku extends AbstractProblem {
         System.out.println("MEDIUM GRIDS: " + gridsAssessedBucket.get(GridDifficulty.MEDIUM).size());
         System.out.println("HARD GRIDS: " + gridsAssessedBucket.get(GridDifficulty.HARD).size());
         System.out.println("DIABOLIC GRIDS: " + gridsAssessedBucket.get(GridDifficulty.DIABOLIC).size());
+
+        // Interactive part, we ask the user if he wants to see a grid of a certain difficulty
+        Scanner scanner = new Scanner(System.in);
+        scanner.useDelimiter("\n");
+        while(true){
+            System.out.println("Do you want to see a grid of a certain difficulty? (y/n)");
+            String response = scanner.next();
+            if(response.equals("n")){
+                break;
+            }
+            else if(response.equals("y")){
+                System.out.println("Which difficulty? (easy, medium, hard, diabolic)");
+                String difficulty = scanner.next();
+                if(difficulty.equals("easy")){
+                    System.out.println("Printing an easy grid:");
+                    print2Dgrid(gridsAssessedBucket.get(GridDifficulty.EASY).get((int) (Math.random() * gridsAssessedBucket.get(GridDifficulty.EASY).size())));
+                }
+                else if(difficulty.equals("medium")){
+                    System.out.println("Printing a medium grid:");
+                    print2Dgrid(gridsAssessedBucket.get(GridDifficulty.MEDIUM).get((int) (Math.random() * gridsAssessedBucket.get(GridDifficulty.MEDIUM).size())));
+                }
+                else if(difficulty.equals("hard")){
+                    System.out.println("Printing a hard grid:");
+                    print2Dgrid(gridsAssessedBucket.get(GridDifficulty.HARD).get((int) (Math.random() * gridsAssessedBucket.get(GridDifficulty.HARD).size())));
+                }
+                else if(difficulty.equals("diabolic")){
+                    System.out.println("Printing a diabolic grid:");
+                    print2Dgrid(gridsAssessedBucket.get(GridDifficulty.DIABOLIC).get((int) (Math.random() * gridsAssessedBucket.get(GridDifficulty.DIABOLIC).size())));
+                }
+                else{
+                    System.out.println("Invalid difficulty");
+                }
+            }
+            else{
+                System.out.println("Invalid response");
+            }
+        }
+
     }
 
 
