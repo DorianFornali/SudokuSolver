@@ -32,8 +32,9 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  */
 public class Sudoku extends AbstractProblem {
     private static final int n = 9;
-    private static final int N = 10000;
+    private static final int N = 1000;
 
+    // Bucket containing the grids that have been assessed and their difficulty
     public static Map<GridDifficulty, ArrayList<int[][]>> gridsAssessedBucket;
     IntVar[][] rows, cols, carres;
 
@@ -186,6 +187,13 @@ public class Sudoku extends AbstractProblem {
         }
 
 
+        // Basic medium model constraints but with BC consistency (Hardly any difference)
+        for (int i = 0; i < n; i++) {
+            model.allDifferent(rows[i], "BC").post();
+            model.allDifferent(cols[i], "BC").post();
+            model.allDifferent(carres[i], "BC").post();
+        }
+
         // Each number must appear 9 times in the entire box
 
         {
@@ -205,13 +213,6 @@ public class Sudoku extends AbstractProblem {
         }
 
 
-        // Basic medium model constraints but with BC consistency (Hardly any difference)
-        for (int i = 0; i < n; i++) {
-            model.allDifferent(rows[i], "BC").post();
-            model.allDifferent(cols[i], "BC").post();
-            model.allDifferent(carres[i], "BC").post();
-        }
-
         // The sum of each row/col/box must be equal to 45
 
         {
@@ -223,6 +224,30 @@ public class Sudoku extends AbstractProblem {
             }
             for (IntVar[] carre : carres) {
                 model.sum(carre, "=", 45).post();
+            }
+        }
+
+        // Hidden Pairs Constraint
+        for (int num1 = 1; num1 <= n; num1++) {
+            for (int num2 = num1 + 1; num2 <= n; num2++) {
+                for (IntVar[][] cellSet : new IntVar[][][]{rows, cols, carres}) {
+                    for (IntVar[] cells : cellSet) {
+                        IntVar countNum1 = model.intVar("count_" + num1, 0, 2);
+                        IntVar countNum2 = model.intVar("count_" + num2, 0, 2);
+                        model.count(num1, cells, countNum1).post();
+                        model.count(num2, cells, countNum2).post();
+                        model.or(
+                                model.and(
+                                        model.arithm(countNum1, "=", 2),
+                                        model.arithm(countNum2, "=", 2)
+                                ),
+                                model.and(
+                                        model.arithm(countNum1, "!=", 2),
+                                        model.arithm(countNum2, "!=", 2)
+                                )
+                        ).post();
+                    }
+                }
             }
         }
 
@@ -246,9 +271,7 @@ public class Sudoku extends AbstractProblem {
         }
 
         //printGrid(targetGrid);
-
         //model.getSolver().printStatistics();
-
 
     }
 
@@ -284,17 +307,19 @@ public class Sudoku extends AbstractProblem {
         Sudoku sudoku = new Sudoku();
         SudokuGridGenerator fullGridGenerator = new SudokuGridGenerator();
         PlayableGridGenerator playableGridGenerator = new PlayableGridGenerator(sudoku);
-        /*int[] oneDimensionGrid = fullGridGenerator.generateGrid();
-        System.out.println("Initial Grid:");
-        SudokuGridGenerator.printGrid(oneDimensionGrid);*/
+
+        System.out.println("Generating "+ N + " sudoku grids and trying to solve them . . .");
 
         for(int i = 0; i < N; i++){
+
+            // Every 10% of the grids we print a message
+            if(i % (N / 10) == 0 && i != 0){
+                System.out.println("Solved " + i + " grids");
+            }
             // We generate N full grids
             int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
             sudoku.targetGrid = gridToSolve;
-
-            //debugHard(sudoku, args);
 
             // We first try to solve with the easy model
             sudoku.setModelLevel(ModelLevel.EASY);
@@ -307,8 +332,8 @@ public class Sudoku extends AbstractProblem {
 
             if(failCount > 0 || backtracks > 0) {
                 // We failed / backtracked with easy model so we try the medium
-                System.out.println("The grid is too hard to" +
-                        " solve with the easy model, trying with the medium model");
+                //System.out.println("The grid is too hard to" +
+                //        " solve with the easy model, trying with the medium model");
                 // Now trying with medium model
                 sudoku.setModelLevel(ModelLevel.MEDIUM);
                 sudoku.buildModel();
@@ -320,8 +345,8 @@ public class Sudoku extends AbstractProblem {
 
                 if(failCount > 0 || backtracks > 0){
                     // We failed / backtracked with easy model so we try the hard
-                    System.out.println("The grid is too hard to" +
-                            " solve with the medium model, trying with the hard model");
+                    //System.out.println("The grid is too hard to" +
+                    //        " solve with the medium model, trying with the hard model");
                     // Now trying with hard model
                     sudoku.setModelLevel(ModelLevel.HARD);
                     sudoku.buildModel();
@@ -363,16 +388,5 @@ public class Sudoku extends AbstractProblem {
         System.out.println("DIABOLIC GRIDS: " + gridsAssessedBucket.get(GridDifficulty.DIABOLIC).size());
     }
 
-    public static void debugHard(Sudoku sudoku, String[] args){
-        sudoku.setModelLevel(ModelLevel.HARD);
-        sudoku.buildModel();
-        sudoku.execute(args);
-
-        float time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
-        long failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
-        long backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
-
-        System.exit(0);
-    }
 
 }

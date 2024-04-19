@@ -23,8 +23,7 @@ public class PlayableGridGenerator{
         return twoD;
     }
 
-    /** Takes a full sudoku grid and removes the maximum amount of numbers possible without increasing the amount of
-     * possible solution */
+    /** Takes a full sudoku grid and removes cases one by one until a model finds two solutions */
     public int[][] processGrid(int[][] grid) {
         // The goal here is to remove randomly numbers from the grid until we reach a point where the next number to remove
         // would give a second solution to the grid solve. We then stop and return the grid.

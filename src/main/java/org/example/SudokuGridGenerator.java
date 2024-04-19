@@ -2,15 +2,6 @@ package org.example;
 import java.util.Collections;
 import java.util.ArrayList;
 
-/*
-    * __________________________________________________________________________________________
-
-    * IMPORTANT: This sudoku generation method is taken from
-    * https://github.com/mfgravesjr/finished-projects/blob/master/SudokuGridGenerator/SudokuGridGenerator.java
-    * Only the full-grid generation of my project is taken from an outer source.
-
-    * __________________________________________________________________________________________
- */
 
 /** This class is responsible for generating N full sudoku grids*/
 class SudokuGridGenerator {
