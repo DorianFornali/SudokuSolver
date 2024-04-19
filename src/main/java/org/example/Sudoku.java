@@ -71,7 +71,7 @@ public class Sudoku extends AbstractProblem {
 
     }
 
-    /** The easy model consists of alldiff checking with very basic methods */
+    /** The easy model consists of alldiff with arithmetic methods for checking inequalities  */
     private void buildEasyModel(){
         model = new Model();
 
@@ -101,19 +101,27 @@ public class Sudoku extends AbstractProblem {
             }
         }
 
-        // We will check that each row, column and carre has different values
-        // With a very basic 2-for-loops approach
-        // We will check the equality for each pair of values in the row, column and sub-box
-        // And post() the constraint, thus we have one constraint per pair
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                model.arithm(rows[i][j], "!=", rows[j][i]).post();
-                model.arithm(cols[i][j], "!=", cols[j][i]).post();
-                model.arithm(carres[i][j], "!=", carres[j][i]).post();
+
+        // Now we create the constraints
+        // We will check the equality for each pair of values in the row, column and sub-box with arithmetic method
+        // And post() the constraint
+
+        for(int x = 0; x < n; x++){
+            for(int y = 0; y < n; y++){
+                for(int z = 0; z < n; z++){
+                    if(z != y){
+                        model.arithm(rows[x][y], "!=", rows[x][z]).post();
+                        model.arithm(cols[x][y], "!=", cols[x][z]).post();
+                        model.arithm(carres[x][y], "!=", carres[x][z]).post();
+                    }
+                }
             }
         }
+
     }
 
+
+    /** Medium model, consists of the three allDiff constraints using choco solver method with AC consistency */
     private void buildMediumModel(){
         model = new Model();
 
@@ -146,12 +154,11 @@ public class Sudoku extends AbstractProblem {
             model.allDifferent(cols[i], "AC").post();
             model.allDifferent(carres[i], "AC").post();
         }
-
-
-
     }
 
-    private void buildHardModel(){
+    /** The hard model has the three allDiff constraints in addition to multiple other implicit constraints to improve
+     * its performance */
+    private void buildHardModel() {
         model = new Model();
 
         rows = new IntVar[n][n];
@@ -178,10 +185,54 @@ public class Sudoku extends AbstractProblem {
             }
         }
 
+        // Basic medium model constraints (allDiff AC)
         for (int i = 0; i < n; i++) {
             model.allDifferent(rows[i], "AC").post();
             model.allDifferent(cols[i], "AC").post();
             model.allDifferent(carres[i], "AC").post();
+        }
+
+        // Each number must appear 9 times in the entire box
+        {
+
+            Map<Integer, Integer> digitPresence = new HashMap<>();
+            for (int i = 1; i < 10; i++) {
+                digitPresence.put(i, 0);
+            }
+
+            // We only check the rows as the rest is useless
+            for (IntVar[] row : rows) {
+                for (IntVar var : row) {
+                    if(var.isInstantiated()) {
+                        int value = var.getValue();
+                        // We add one only if the entry is present
+                        digitPresence.computeIfPresent(value, (key, val) -> val + 1);
+                    }
+                }
+            }
+
+            IntVar[] digitPresenceModel = new IntVar[9];
+            for (int i = 0; i < 9; i++) {
+                digitPresenceModel[i] = model.intVar(digitPresence.get(i + 1));
+            }
+            for (IntVar var : digitPresenceModel) {
+                model.arithm(var, "=", 9).post();
+            }
+
+        }
+
+        // The sum of each row/col/box must be equal to 45
+
+        {
+            for (IntVar[] row : rows) {
+                model.sum(row, "=", 45).post();
+            }
+            for (IntVar[] col : cols) {
+                model.sum(col, "=", 45).post();
+            }
+            for (IntVar[] carre : carres) {
+                model.sum(carre, "=", 45).post();
+            }
         }
     }
 
@@ -210,6 +261,7 @@ public class Sudoku extends AbstractProblem {
 
     }
 
+    /** Prints the grid via the model's vision (constants will be printed as cst and deducted numbers as c_x_y) */
     public void printGrid(int[][] grid) {
         StringBuilder st = new StringBuilder("Sudoku -- %s\n");
         st.append("\t");
@@ -227,7 +279,7 @@ public class Sudoku extends AbstractProblem {
         this.modelLevel = level;
     }
 
-    /** Prints the grid via pure jure vision */
+    /** Prints the grid */
     public static void print2Dgrid(int[][] grid) {
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[i].length; j++) {
@@ -251,6 +303,8 @@ public class Sudoku extends AbstractProblem {
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
             sudoku.targetGrid = gridToSolve;
 
+            debugHard(sudoku, args);
+
             // We first try to solve with the easy model
             sudoku.setModelLevel(ModelLevel.EASY);
             sudoku.buildModel();
@@ -261,6 +315,7 @@ public class Sudoku extends AbstractProblem {
             long backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
 
             if(failCount > 0 || backtracks > 0) {
+                // We failed / backtracked with easy model so we try the medium
                 System.out.println("The grid is too hard to" +
                         " solve with the easy model, trying with the medium model");
                 // Now trying with medium model
@@ -273,6 +328,7 @@ public class Sudoku extends AbstractProblem {
                 backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
 
                 if(failCount > 0 || backtracks > 0){
+                    // We failed / backtracked with easy model so we try the hard
                     System.out.println("The grid is too hard to" +
                             " solve with the medium model, trying with the hard model");
                     // Now trying with hard model
@@ -284,20 +340,20 @@ public class Sudoku extends AbstractProblem {
                     failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
                     backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
                     if(failCount > 0 || backtracks > 0){
-                        System.out.println("The grid is too hard for all models, setting it as diabolic");
+                        //System.out.println("The grid is too hard for all models, setting it as diabolic");
                         gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
                     }
                     else{
-                        System.out.println("Solved a grid with the hard model");
+                        //System.out.println("Solved a grid with the hard model");
                         gridsAssessedBucket.get(GridDifficulty.HARD).add(gridToSolve);
                     }
                 } else {
-                    System.out.println("Solved a grid with the medium model");
+                    //System.out.println("Solved a grid with the medium model");
                     gridsAssessedBucket.get(GridDifficulty.MEDIUM).add(gridToSolve);
                 }
 
             } else {
-                System.out.println("Solved a grid with the easy model");
+                //System.out.println("Solved a grid with the easy model");
                 gridsAssessedBucket.get(GridDifficulty.EASY).add(gridToSolve);
             }
             sudoku.timeTaken.add(time);
@@ -314,6 +370,16 @@ public class Sudoku extends AbstractProblem {
         System.out.println("MEDIUM GRIDS: " + gridsAssessedBucket.get(GridDifficulty.MEDIUM).size());
         System.out.println("HARD GRIDS: " + gridsAssessedBucket.get(GridDifficulty.HARD).size());
         System.out.println("DIABOLIC GRIDS: " + gridsAssessedBucket.get(GridDifficulty.DIABOLIC).size());
+    }
+
+    public static void debugHard(Sudoku sudoku, String[] args){
+        sudoku.setModelLevel(ModelLevel.HARD);
+        sudoku.buildModel();
+        sudoku.execute(args);
+
+        float time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
+        long failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
+        long backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
     }
 
 }
