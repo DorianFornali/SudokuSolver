@@ -39,7 +39,7 @@ public class Sudoku extends AbstractProblem {
 
     /** The current grid to solve */
     public int[][] targetGrid;
-    ModelLevel modelLevel = ModelLevel.EASY;
+    ModelLevel modelLevel;
 
     // ----------------------- Solving data ------------------------------
 
@@ -185,40 +185,31 @@ public class Sudoku extends AbstractProblem {
             }
         }
 
-        // Basic medium model constraints (allDiff AC)
-        for (int i = 0; i < n; i++) {
-            model.allDifferent(rows[i], "AC").post();
-            model.allDifferent(cols[i], "AC").post();
-            model.allDifferent(carres[i], "AC").post();
-        }
 
         // Each number must appear 9 times in the entire box
+
         {
-
-            Map<Integer, Integer> digitPresence = new HashMap<>();
-            for (int i = 1; i < 10; i++) {
-                digitPresence.put(i, 0);
-            }
-
-            // We only check the rows as the rest is useless
-            for (IntVar[] row : rows) {
-                for (IntVar var : row) {
-                    if(var.isInstantiated()) {
-                        int value = var.getValue();
-                        // We add one only if the entry is present
-                        digitPresence.computeIfPresent(value, (key, val) -> val + 1);
-                    }
-                }
-            }
-
-            IntVar[] digitPresenceModel = new IntVar[9];
+            IntVar[] digitCounts = new IntVar[9];
             for (int i = 0; i < 9; i++) {
-                digitPresenceModel[i] = model.intVar(digitPresence.get(i + 1));
-            }
-            for (IntVar var : digitPresenceModel) {
-                model.arithm(var, "=", 9).post();
+                digitCounts[i] = model.intVar("count_" + (i + 1), 9, 9); // each digit appears exactly 9 times
+                }
+
+            // Flatten the rows array to a single array
+            IntVar[] allCells = Arrays.stream(rows).flatMap(Arrays::stream).toArray(IntVar[]::new);
+
+            // Create and post the count constraints
+            for (int i = 0; i < 9; i++) {
+                model.count(i + 1, allCells, digitCounts[i]).post();
             }
 
+        }
+
+
+        // Basic medium model constraints but with BC consistency (Hardly any difference)
+        for (int i = 0; i < n; i++) {
+            model.allDifferent(rows[i], "BC").post();
+            model.allDifferent(cols[i], "BC").post();
+            model.allDifferent(carres[i], "BC").post();
         }
 
         // The sum of each row/col/box must be equal to 45
@@ -234,13 +225,13 @@ public class Sudoku extends AbstractProblem {
                 model.sum(carre, "=", 45).post();
             }
         }
+
     }
 
 
     @Override
     public void configureSearch() {
         model.getSolver().setSearch(minDomLBSearch(append(rows)));
-
     }
 
     @Override
@@ -254,7 +245,7 @@ public class Sudoku extends AbstractProblem {
             e.printStackTrace();
         }
 
-        // printGrid(targetGrid);
+        //printGrid(targetGrid);
 
         //model.getSolver().printStatistics();
 
@@ -303,7 +294,7 @@ public class Sudoku extends AbstractProblem {
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
             sudoku.targetGrid = gridToSolve;
 
-            debugHard(sudoku, args);
+            //debugHard(sudoku, args);
 
             // We first try to solve with the easy model
             sudoku.setModelLevel(ModelLevel.EASY);
@@ -359,13 +350,13 @@ public class Sudoku extends AbstractProblem {
             sudoku.timeTaken.add(time);
         }
 
-        System.out.println("DONE SOLVING " + N + " GRIDS");
+        System.out.println("DONE TRYING TO SOLVE " + N + " GRIDS");
         if(!sudoku.timeTaken.isEmpty()) {
             System.out.println("Average time taken: " + sudoku.timeTaken.stream().reduce(0f, Float::sum) / sudoku.timeTaken.size());
             System.out.println("Max time taken: " + sudoku.timeTaken.stream().max(Float::compareTo).get());
         }
 
-        // We conclude by saying how much grids os each difficulty we have
+        // We conclude by saying how much grids of each difficulty we have
         System.out.println("EASY GRIDS: " + gridsAssessedBucket.get(GridDifficulty.EASY).size());
         System.out.println("MEDIUM GRIDS: " + gridsAssessedBucket.get(GridDifficulty.MEDIUM).size());
         System.out.println("HARD GRIDS: " + gridsAssessedBucket.get(GridDifficulty.HARD).size());
@@ -380,6 +371,8 @@ public class Sudoku extends AbstractProblem {
         float time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
         long failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
         long backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
+
+        System.exit(0);
     }
 
 }
