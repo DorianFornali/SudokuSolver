@@ -32,7 +32,7 @@ import static org.chocosolver.util.tools.ArrayUtils.append;
  */
 public class Sudoku extends AbstractProblem {
     private static final int n = 9;
-    private static final int N = 10000;
+    private static final int N = 1000;
 
     // Bucket containing the grids that have been assessed and their difficulty
     public static Map<GridDifficulty, ArrayList<int[][]>> gridsAssessedBucket;
@@ -308,19 +308,19 @@ public class Sudoku extends AbstractProblem {
         SudokuGridGenerator fullGridGenerator = new SudokuGridGenerator();
         PlayableGridGenerator playableGridGenerator = new PlayableGridGenerator(sudoku);
 
-        System.out.println("Generating "+ N + " sudoku grids and trying to solve them . . .");
+        System.out.println("Generating " + N + " sudoku grids and trying to solve them . . .");
 
-        for(int i = 0; i < N; i++){
+        for (int i = 0; i < N; i++) {
 
             // Every 10% of the grids we print a message
-            if(i % (N / 10) == 0 && i != 0){
+            if (i % (N / 10) == 0 && i != 0) {
                 System.out.println("Solved " + i + " grids");
             }
             // We generate N full grids
             int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
             sudoku.targetGrid = gridToSolve;
-
+            //print2Dgrid(gridToSolve);
             // We first try to solve with the easy model
             sudoku.setModelLevel(ModelLevel.EASY);
             sudoku.buildModel();
@@ -348,6 +348,7 @@ public class Sudoku extends AbstractProblem {
                     //System.out.println("The grid is too hard to" +
                     //        " solve with the medium model, trying with the hard model");
                     // Now trying with hard model
+                    //System.out.println("Trying to solve a supposedly hard grid");
                     sudoku.setModelLevel(ModelLevel.HARD);
                     sudoku.buildModel();
                     sudoku.execute(args);
@@ -425,7 +426,5 @@ public class Sudoku extends AbstractProblem {
             }
         }
 
-    }
-
-
+        }
 }

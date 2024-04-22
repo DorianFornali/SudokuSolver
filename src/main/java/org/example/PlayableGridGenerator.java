@@ -1,8 +1,9 @@
 package org.example;
 
-/** This class is responsible for removing numbers of the grid to make them playable */
-public class PlayableGridGenerator{
+import static org.example.Sudoku.print2Dgrid;
 
+/** This class is responsible for removing numbers from a grid to make it playable (solvable by our models) */
+public class PlayableGridGenerator{
     private Sudoku solver;
 
     public PlayableGridGenerator(Sudoku solver) {
@@ -27,6 +28,7 @@ public class PlayableGridGenerator{
     public int[][] processGrid(int[][] grid) {
         // The goal here is to remove randomly numbers from the grid until we reach a point where the next number to remove
         // would give a second solution to the grid solve. We then stop and return the grid.
+        int n = 0; // The amount of numbers removed
 
         solver.targetGrid = grid;
         // The medium solver will be used for this operation
@@ -39,27 +41,37 @@ public class PlayableGridGenerator{
             int targetY = (int) (Math.random() * SIZE);
             int oldValue = grid[targetX][targetY];
             grid[targetX][targetY] = 0;
-
-            // System.out.println("Removed number at " + targetY + " " + targetX);
+            if(oldValue != 0){
+                // Obviously, we don't consider removing already empty cases as a removal
+                n++;
+            }
+            //System.out.println("Removed number at " + targetY + " " + targetX);
 
             solver.targetGrid = grid;
             solver.buildModel();
 
-            // System.out.println("Resulting grid:");
-            // Sudoku.print2Dgrid(grid);
+            /*System.out.println("Resulting grid:");
+            Sudoku.print2Dgrid(grid);
+            System.out.println("n = " + n);*/
             // We extract how many solutions the solver found
             int solutions = solver.getModel().getSolver().findAllSolutions().size();
 
             // System.out.println("SOLUTIONS FOUND:" + solutions);
             if(solutions > 1) {
                 // If the solver found more than one solution, we re-put the number in the grid and return the grid
-                // System.out.println("Found more than one solution, reverting.");
+                //System.out.println("Found more than one solution, reverting.");
                 grid[targetX][targetY] = oldValue;
-                break;
+                n--;
+                if(n >= 53){
+                    // We only stop when we have reached the minimum amount of numbers to remove
+                    break;
+                }
             }
+
+
         }
-
-
+        //System.out.println("Done generating playable grid. Removed " + n + " numbers.");
         return grid;
     }
+
 }
