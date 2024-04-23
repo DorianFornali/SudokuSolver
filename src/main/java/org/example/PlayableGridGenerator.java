@@ -24,7 +24,10 @@ public class PlayableGridGenerator{
         return twoD;
     }
 
-    /** Takes a full sudoku grid and removes cases one by one until a model finds two solutions */
+    /** Takes a full sudoku grid and removes cases one by one until a model finds two solutions, doens't stop until
+     * at least 53 cases have been removed
+     * 53 seems to be the best in between speed of generation and difficulty of the grids generated
+     * Not specifying a minimum will end up in the generation of generally easy grids */
     public int[][] processGrid(int[][] grid) {
         // The goal here is to remove randomly numbers from the grid until we reach a point where the next number to remove
         // would give a second solution to the grid solve. We then stop and return the grid.
