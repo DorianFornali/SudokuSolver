@@ -1,5 +1,10 @@
 package org.example;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import static org.example.Sudoku.print2Dgrid;
 
 /** This class is responsible for removing numbers from a grid to make it playable (solvable by our models) */
@@ -25,55 +30,61 @@ public class PlayableGridGenerator{
     }
 
     /** Takes a full sudoku grid and removes cases one by one until a model finds two solutions, doens't stop until
-     * at least 53 cases have been removed
-     * 53 seems to be the best in between speed of generation and difficulty of the grids generated
-     * Not specifying a minimum will end up in the generation of generally easy grids */
-    public int[][] processGrid(int[][] grid) {
-        // The goal here is to remove randomly numbers from the grid until we reach a point where the next number to remove
-        // would give a second solution to the grid solve. We then stop and return the grid.
+     * at least 55 cases have been removed.
+     * 55 seems to be the best in between speed of generation and difficulty of the grids generated
+     * Not specifying a minimum will end up in the generation of too easy grids */
+
+    public int[][] processGrid(int[][] grid){
+        // This function will remove numbers from the grid until it finds a grid with two solutions
+        // The removal is made following this logic: the number to remove is chosen randomly among the non-empty cells
+        // If the solver finds more than one solution, the number is put back in the grid
+        // The process stops when the minimum amount of numbers to remove is reached
+
         int n = 0; // The amount of numbers removed
 
         solver.targetGrid = grid;
-        // The medium solver will be used for this operation
         solver.setModelLevel(ModelLevel.MEDIUM);
 
-        while(true) {
-
-            // We remove a number from the grid
-            int targetX = (int) (Math.random() * SIZE);
-            int targetY = (int) (Math.random() * SIZE);
-            int oldValue = grid[targetX][targetY];
-            grid[targetX][targetY] = 0;
-            if(oldValue != 0){
-                // Obviously, we don't consider removing already empty cases as a removal
-                n++;
+        // We create a list of all non-empty cells
+        List<int[]> nonEmptyCells = new ArrayList<>();
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (grid[i][j] != 0) {
+                    nonEmptyCells.add(new int[]{i, j});
+                }
             }
-            //System.out.println("Removed number at " + targetY + " " + targetX);
+        }
+
+        // we shuffle the list
+        Collections.shuffle(nonEmptyCells);
+
+        // iterate over the list
+        for (int[] cell : nonEmptyCells) {
+            int i = cell[0];
+            int j = cell[1];
+
+            // Remove the number from the grid
+            int oldValue = grid[i][j];
+            grid[i][j] = 0;
 
             solver.targetGrid = grid;
             solver.buildModel();
 
-            /*System.out.println("Resulting grid:");
-            Sudoku.print2Dgrid(grid);
-            System.out.println("n = " + n);*/
-            // We extract how many solutions the solver found
+            // Extract how many solutions the solver found
             int solutions = solver.getModel().getSolver().findAllSolutions().size();
 
-            // System.out.println("SOLUTIONS FOUND:" + solutions);
             if(solutions > 1) {
-                // If the solver found more than one solution, we re-put the number in the grid and return the grid
-                //System.out.println("Found more than one solution, reverting.");
-                grid[targetX][targetY] = oldValue;
-                n--;
-                if(n >= 53){
+                // If the solver found more than one solution, re-put the number in the grid
+                grid[i][j] = oldValue;
+            } else {
+                n++;
+                if(n >= 55){
                     // We only stop when we have reached the minimum amount of numbers to remove
                     break;
                 }
             }
-
-
         }
-        //System.out.println("Done generating playable grid. Removed " + n + " numbers.");
+
         return grid;
     }
 

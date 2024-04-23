@@ -356,7 +356,7 @@ public class Sudoku extends AbstractProblem {
                     time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
                     failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
                     backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
-                    // before setting it as diabolic we check if it took more than 5 seconds to solve
+                    // before setting it as diabolic we check if it took more than 0.05 seconds to solve
                     if((failCount > 0 || backtracks > 0) && time > 0.05f){
                         //System.out.println("The grid is too hard for all models, setting it as diabolic");
                         gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
