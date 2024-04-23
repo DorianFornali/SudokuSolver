@@ -320,7 +320,6 @@ public class Sudoku extends AbstractProblem {
             int[][] grid = PlayableGridGenerator.toTwoDimensionalArray(fullGridGenerator.generateGrid());
             int[][] gridToSolve = playableGridGenerator.processGrid(grid);
             sudoku.targetGrid = gridToSolve;
-            //print2Dgrid(gridToSolve);
             // We first try to solve with the easy model
             sudoku.setModelLevel(ModelLevel.EASY);
             sudoku.buildModel();
@@ -332,9 +331,6 @@ public class Sudoku extends AbstractProblem {
 
             if(failCount > 0 || backtracks > 0) {
                 // We failed / backtracked with easy model so we try the medium
-                //System.out.println("The grid is too hard to" +
-                //        " solve with the easy model, trying with the medium model");
-                // Now trying with medium model
                 sudoku.setModelLevel(ModelLevel.MEDIUM);
                 sudoku.buildModel();
                 sudoku.execute(args);
@@ -345,10 +341,7 @@ public class Sudoku extends AbstractProblem {
 
                 if(failCount > 0 || backtracks > 0){
                     // We failed / backtracked with easy model so we try the hard
-                    //System.out.println("The grid is too hard to" +
-                    //        " solve with the medium model, trying with the hard model");
-                    // Now trying with hard model
-                    //System.out.println("Trying to solve a supposedly hard grid");
+
                     sudoku.setModelLevel(ModelLevel.HARD);
                     sudoku.buildModel();
                     sudoku.execute(args);
@@ -358,20 +351,16 @@ public class Sudoku extends AbstractProblem {
                     backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
                     // before setting it as diabolic we check if it took more than 0.05 seconds to solve
                     if((failCount > 0 || backtracks > 0) && time > 0.05f){
-                        //System.out.println("The grid is too hard for all models, setting it as diabolic");
                         gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
                     }
                     else{
-                        //System.out.println("Solved a grid with the hard model");
                         gridsAssessedBucket.get(GridDifficulty.HARD).add(gridToSolve);
                     }
                 } else {
-                    //System.out.println("Solved a grid with the medium model");
                     gridsAssessedBucket.get(GridDifficulty.MEDIUM).add(gridToSolve);
                 }
 
             } else {
-                //System.out.println("Solved a grid with the easy model");
                 gridsAssessedBucket.get(GridDifficulty.EASY).add(gridToSolve);
             }
             sudoku.timeTaken.add(time);
