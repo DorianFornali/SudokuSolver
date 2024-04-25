@@ -475,16 +475,16 @@ public class Sudoku extends AbstractProblem {
 
         // Interactive part, we ask the user if he wants to see a grid of a certain difficulty
         Scanner scanner = new Scanner(System.in);
-        scanner.useDelimiter("\n");
+        scanner.useDelimiter(System.lineSeparator());
         while(true){
             System.out.println("Do you want to see a grid of a certain difficulty? (y/n)");
-            String response = scanner.next();
+            String response = scanner.nextLine().trim();
             if(response.equals("n")){
                 break;
             }
             else if(response.equals("y")){
                 System.out.println("Which difficulty? (easy, medium, hard, diabolic)");
-                String difficulty = scanner.next();
+                String difficulty = scanner.nextLine().trim();
                 if(difficulty.equals("easy")){
                     System.out.println("Printing an easy grid:");
                     print2Dgrid(gridsAssessedBucket.get(GridDifficulty.EASY).get((int) (Math.random() * gridsAssessedBucket.get(GridDifficulty.EASY).size())));
