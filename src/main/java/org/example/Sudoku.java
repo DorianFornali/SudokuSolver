@@ -195,7 +195,9 @@ public class Sudoku extends AbstractProblem {
         }
 
         // Each number must appear 9 times in the entire box
+        // THIS CONSTRAINT ACTUALLY MAKES THE SOLVER LESS POWERFUL, WILL BE IGNORED
 
+        /*
         {
             IntVar[] digitCounts = new IntVar[9];
             for (int i = 0; i < 9; i++) {
@@ -211,10 +213,11 @@ public class Sudoku extends AbstractProblem {
             }
 
         }
-
+        */
 
         // The sum of each row/col/box must be equal to 45
-
+        // THIS CONSTRAINT ACTUALLY MAKES THE SOLVER LESS POWERFUL, WILL BE IGNORED
+        /*
         {
             for (IntVar[] row : rows) {
                 model.sum(row, "=", 45).post();
@@ -226,30 +229,123 @@ public class Sudoku extends AbstractProblem {
                 model.sum(carre, "=", 45).post();
             }
         }
+        
+        */
+        
+        /*
+        // Specific constraint, will be explained in the report
+        // THIS CONSTRAINT MAKES NO DIFFERENCE IN THE MODEL'S PERFORMANCE
+        // SO WE COMMENT IT NOT TO WASTE SPEED
+        {
+            IntVar[] corners = new IntVar[16];
+            // Top left corner
+            corners[0] = rows[0][0];
+            corners[1] = rows[0][1];
+            corners[2] = rows[1][0];
+            corners[3] = rows[1][1];
 
-        // Hidden Pairs Constraint
-        for (int num1 = 1; num1 <= n; num1++) {
-            for (int num2 = num1 + 1; num2 <= n; num2++) {
-                for (IntVar[][] cellSet : new IntVar[][][]{rows, cols, carres}) {
-                    for (IntVar[] cells : cellSet) {
-                        IntVar countNum1 = model.intVar("count_" + num1, 0, 2);
-                        IntVar countNum2 = model.intVar("count_" + num2, 0, 2);
-                        model.count(num1, cells, countNum1).post();
-                        model.count(num2, cells, countNum2).post();
-                        model.or(
-                                model.and(
-                                        model.arithm(countNum1, "=", 2),
-                                        model.arithm(countNum2, "=", 2)
-                                ),
-                                model.and(
-                                        model.arithm(countNum1, "!=", 2),
-                                        model.arithm(countNum2, "!=", 2)
-                                )
-                        ).post();
+            // Top right corner
+            corners[4] = rows[0][7];
+            corners[5] = rows[0][8];
+            corners[6] = rows[1][7];
+            corners[7] = rows[1][8];
+
+            // Bottom left corner
+            corners[8] = rows[7][0];
+            corners[9] = rows[7][1];
+            corners[10] = rows[8][0];
+            corners[11] = rows[8][1];
+
+            // Bottom right corner
+            corners[12] = rows[7][7];
+            corners[13] = rows[7][8];
+            corners[14] = rows[8][7];
+            corners[15] = rows[8][8];
+
+            IntVar[] middle = new IntVar[16];
+            for (int i = 0; i < 5; i++) {
+                middle[i] = rows[2][2 + i];
+            }
+            for (int i = 0; i < 5; i++) {
+                middle[i + 5] = rows[6][2 + i];
+            }
+
+            middle[10] = rows[3][2];
+            middle[11] = rows[4][2];
+            middle[12] = rows[5][2];
+            middle[13] = rows[3][6];
+            middle[14] = rows[4][6];
+            middle[15] = rows[5][6];
+
+            // Count the frequency of each number in corners and middle
+            for (int j = 1; j <= n; j++) {
+                IntVar occurrencesInCorners = model.intVar("occurrencesInCorners_" + j, 0, n);
+                IntVar occurrencesInMiddle = model.intVar("occurrencesInMiddle_" + j, 0, n);
+
+                model.count(j, corners, occurrencesInCorners).post();
+                model.count(j, middle, occurrencesInMiddle).post();
+
+                model.arithm(occurrencesInCorners, "=", occurrencesInMiddle).post();
+            }
+        }
+        */
+        
+        // Specific constraint, will be explained in the report
+        {
+            IntVar[] targetRowArray;
+            IntVar[] valueRowArray;
+            IntVar[] targetColumnArray;
+            IntVar[] valueColumnArray;
+            IntVar unit = this.model.intVar(1);
+
+            for (int  line = 0;  line < 9;  line++) {
+                for (int i = 0; i < 3; i++) {
+                    targetRowArray = new IntVar[9];
+                    valueRowArray = new IntVar[9];
+                    targetColumnArray = new IntVar[9];
+                    valueColumnArray = new IntVar[9];
+
+                    for (int j = 0; j < 9; j++) {
+                        if (j / 3 != i) {
+                            targetRowArray[j] = rows[ line][j];
+                            targetColumnArray[j] = cols[ line][j];
+                        } else {
+                            for (int k = 0; k < 3; k++) {
+                                if (k !=  line % 3) {
+                                    int arrayIndex = j % 3 + k * 3;
+                                    int rowIndex =  line -  line % 3 + k;
+                                    valueRowArray[arrayIndex] = rows[rowIndex][j];
+                                    valueColumnArray[arrayIndex] = cols[rowIndex][j];
+                                }
+                            }
+                        }
+                    }
+
+                    List<IntVar> targetRowList = new ArrayList<>(Arrays.asList(targetRowArray));
+                    targetRowList.removeIf(Objects::isNull);
+                    targetRowArray = targetRowList.toArray(new IntVar[0]);
+
+                    List<IntVar> valueRowList = new ArrayList<>(Arrays.asList(valueRowArray));
+                    valueRowList.removeIf(Objects::isNull);
+                    valueRowArray = valueRowList.toArray(new IntVar[0]);
+
+                    List<IntVar> targetColumnList = new ArrayList<>(Arrays.asList(targetColumnArray));
+                    targetColumnList.removeIf(Objects::isNull);
+                    targetColumnArray = targetColumnList.toArray(new IntVar[0]);
+
+                    List<IntVar> valueColumnList = new ArrayList<>(Arrays.asList(valueColumnArray));
+                    valueColumnList.removeIf(Objects::isNull);
+                    valueColumnArray = valueColumnList.toArray(new IntVar[0]);
+
+                    for (int j = 0; j < 6; j++) {
+                        model.count(valueRowArray[j], targetRowArray, unit).post();
+                        model.count(valueColumnArray[j], targetColumnArray, unit).post();
                     }
                 }
             }
         }
+        
+        
 
     }
 
@@ -349,8 +445,7 @@ public class Sudoku extends AbstractProblem {
                     time = sudoku.getModel().getSolver().getMeasures().getTimeCount();
                     failCount = sudoku.getModel().getSolver().getMeasures().getFailCount();
                     backtracks = sudoku.getModel().getSolver().getMeasures().getBackTrackCount();
-                    // before setting it as diabolic we check if it took more than 0.05 seconds to solve
-                    if((failCount > 0 || backtracks > 0) && time > 0.05f){
+                    if(failCount > 0 || backtracks > 0){
                         gridsAssessedBucket.get(GridDifficulty.DIABOLIC).add(gridToSolve);
                     }
                     else{
