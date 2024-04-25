@@ -189,9 +189,9 @@ public class Sudoku extends AbstractProblem {
 
         // Basic medium model constraints but with BC consistency (Hardly any difference)
         for (int i = 0; i < n; i++) {
-            model.allDifferent(rows[i], "BC").post();
-            model.allDifferent(cols[i], "BC").post();
-            model.allDifferent(carres[i], "BC").post();
+            model.allDifferent(rows[i], "AC").post();
+            model.allDifferent(cols[i], "AC").post();
+            model.allDifferent(carres[i], "AC").post();
         }
 
         // Each number must appear 9 times in the entire box
