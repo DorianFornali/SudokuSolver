@@ -18,9 +18,8 @@ The goal was to create an algorithm capable of generating multiple valid sudoku 
   
 
 <h2>How to run</h2>
-
+The pom.xml contains a build plugin that executes the main function, to run:
   
 ```shell
-mvn clean package
-mvn exec:java
+mvn clean compile exec:java
 ```
